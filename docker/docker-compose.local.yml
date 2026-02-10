@@ -1,0 +1,67 @@
+services:
+  app:
+    container_name: takegroup-app
+    image: takegroup-app
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./../app:/var/www/
+    depends_on:
+      redis:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - takegroup
+
+  mysql:
+    image: mysql:9.2.0
+    container_name: takegroup-mysql
+    restart: unless-stopped
+    ports:
+      - '9906:3306'
+    environment:
+      MYSQL_DATABASE: takegroup
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_PASSWORD: secret
+      MYSQL_USER: takegroup
+    command: --skip-log-bin
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: "/usr/bin/mysql --user=root --password=secret --execute \"SHOW DATABASES;\""
+      interval: 2s
+      timeout: 120s
+      retries: 60
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - takegroup
+
+  redis:
+    image: redis:7.4.1
+    container_name: takegroup-redis
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - takegroup
+
+networks:
+  takegroup:
+    external: true
+
+volumes:
+  mysql_data:
